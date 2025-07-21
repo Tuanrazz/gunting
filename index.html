@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Game Gunting Batu Kertas - Responsif</title>
+
+<!-- Bootstrap Icons CDN -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+
+<!-- SweetAlert2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap');
+
+  /* Reset & base */
+  * {
+    box-sizing: border-box;
+  }
+  body, html {
+    margin: 0; padding: 0;
+    height: 100%;
+    font-family: 'Poppins', sans-serif;
+    background: #0f2027;  /* fallback */
+    background: linear-gradient(135deg, #2c5364, #203a43, #0f2027);
+    overflow-x: hidden;
+    color: #eee;
+    user-select: none;
+  }
+  
+  /* Background animated canvas */
+  #bgCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    background: transparent;
+  }
+
+  .container {
+    max-width: 450px;
+    margin: 2rem auto;
+    padding: 1rem 1.5rem;
+    background: rgba(255,255,255,0.05);
+    border-radius: 15px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+
+  h1 {
+    margin-bottom: 0.25rem;
+    font-weight: 700;
+    font-size: 2.4rem;
+    color: #4ade80;
+    text-shadow: 0 0 6px #22c55e;
+  }
+  h2 {
+    font-weight: 500;
+    font-size: 1.2rem;
+    margin-top: 0;
+    color: #a5f3fc;
+    text-shadow: 0 0 5px #0891b2;
+  }
+
+  #scoreBoard {
+    display: flex;
+    justify-content: space-around;
+    margin: 1.5rem 0 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #a3e635;
+  }
+  #scoreBoard div {
+    flex: 1;
+  }
+
+  #timer {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fb923c;
+    margin-bottom: 1rem;
+    letter-spacing: 2px;
+  }
+
+  /* Pilihan tombol */
+  #choices {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 1.5rem;
+  }
+
+  .choice-btn {
+    background: rgba(74, 222, 128, 0.85);
+    border: none;
+    border-radius: 50%;
+    width: 110px;
+    height: 110px;
+    font-size: 3.5rem;
+    color: #164e14;
+    box-shadow: 0 5px 15px rgba(74,222,128,0.6);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+  .choice-btn:hover {
+    transform: scale(1.15);
+    box-shadow: 0 8px 22px rgba(74,222,128,0.9);
+  }
+  .choice-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* Hasil dan animasi menang */
+  #resultText {
+    font-size: 1.25rem;
+    font-weight: 600;
+    min-height: 2rem;
+    margin-bottom: 0.75rem;
+    color: #facc15;
+    text-shadow: 0 0 8px #fde68a;
+  }
+
+  /* Animasi kemenangan */
+  .confetti {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* Responsif mobile */
+  @media (max-width: 480px) {
+    .container {
+      max-width: 95vw;
+      padding: 1rem 1rem;
+    }
+    #choices {
+      gap: 15px;
+    }
+    .choice-btn {
+      width: 80px;
+      height: 80px;
+      font-size: 2.5rem;
+    }
+    h1 {
+      font-size: 1.8rem;
+    }
+    #scoreBoard {
+      font-size: 0.95rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+
+<div class="container" role="main" aria-label="Game Gunting Batu Kertas">
+  <h1><i class="bi bi-scissors"></i> Gunting Batu Kertas</h1>
+  <h2>Pilih dan kalahkan komputer!</h2>
+
+  <div id="scoreBoard" aria-live="polite" aria-atomic="true">
+    <div>Skor Kamu: <span id="userScore">0</span></div>
+    <div>Skor Komputer: <span id="compScore">0</span></div>
+  </div>
+
+  <div id="timer" aria-live="assertive" aria-atomic="true">Waktu: 10</div>
+
+  <div id="resultText" aria-live="polite"></div>
+
+  <div id="choices" role="group" aria-label="Pilih Gunting, Batu, atau Kertas">
+    <button class="choice-btn" id="btn-scissors" aria-label="Gunting (Scissors)" title="Gunting" data-choice="gunting">
+      <i class="bi bi-scissors"></i>
+    </button>
+    <button class="choice-btn" id="btn-rock" aria-label="Batu (Rock)" title="Batu" data-choice="batu">
+      <i class="bi bi-hand-thumbs-up"></i>
+    </button>
+    <button class="choice-btn" id="btn-paper" aria-label="Kertas (Paper)" title="Kertas" data-choice="kertas">
+      <i class="bi bi-file-earmark-text"></i>
+    </button>
+  </div>
+</div>
+
+<audio id="audioWin" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" preload="auto"></audio>
+<audio id="audioLose" src="https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg" preload="auto"></audio>
+<audio id="audioClick" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg" preload="auto"></audio>
+
+<script>
+  // Background canvas particle animation (simple floating triangles)
+  const canvas = document.getElementById('bgCanvas');
+  const ctx = canvas.getContext('2d');
+  let w, h;
+  let particles = [];
+
+  function randomRange(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  class Particle {
+    constructor() {
+      this.x = randomRange(0, w);
+      this.y = randomRange(0, h);
+      this.size = randomRange(10, 20);
+      this.speedX = randomRange(-0.5, 0.5);
+      this.speedY = randomRange(0.2, 0.8);
+      this.opacity = randomRange(0.05, 0.15);
+      this.rotation = Math.random() * 360;
+      this.rotSpeed = randomRange(-1, 1);
+    }
+    update() {
+      this.x += this.speedX;
+      this.y += this.speedY;
+      this.rotation += this.rotSpeed;
+      if (this.y > h) {
+        this.y = -this.size;
+        this.x = randomRange(0, w);
+      }
+      if (this.x > w) this.x = 0;
+      if (this.x < 0) this.x = w;
+    }
+    draw() {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate((this.rotation * Math.PI) / 180);
+      ctx.beginPath();
+      ctx.moveTo(0, -this.size / 2);
+      ctx.lineTo(this.size / 2, this.size / 2);
+      ctx.lineTo(-this.size / 2, this.size / 2);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(74,222,128,${this.opacity})`;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function initParticles() {
+    particles = [];
+    for(let i=0; i<60; i++) {
+      particles.push(new Particle());
+    }
+  }
+
+  function animateParticles() {
+    ctx.clearRect(0,0,w,h);
+    particles.forEach(p => {
+      p.update();
+      p.draw();
+    });
+    requestAnimationFrame(animateParticles);
+  }
+
+  function resizeCanvas() {
+    w = window.innerWidth;
+    h = window.innerHeight;
+    canvas.width = w;
+    canvas.height = h;
+  }
+
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+  });
+
+  resizeCanvas();
+  initParticles();
+  animateParticles();
+
+  // Game logic
+
+  const choices = ['gunting', 'batu', 'kertas'];
+  let userScore = 0;
+  let compScore = 0;
+  let timer = 10;
+  let timerInterval = null;
+  let roundActive = false;
+
+  const userScoreEl = document.getElementById('userScore');
+  const compScoreEl = document.getElementById('compScore');
+  const timerEl = document.getElementById('timer');
+  const resultTextEl = document.getElementById('resultText');
+
+  const audioWin = document.getElementById('audioWin');
+  const audioLose = document.getElementById('audioLose');
+  const audioClick = document.getElementById('audioClick');
+
+  const buttons = document.querySelectorAll('.choice-btn');
+
+  function startTimer() {
+    timer = 10;
+    timerEl.textContent = `Waktu: ${timer}`;
+    roundActive = true;
+
+    timerInterval = setInterval(() => {
+      timer--;
+      timerEl.textContent = `Waktu: ${timer}`;
+
+      if(timer <= 0) {
+        clearInterval(timerInterval);
+        roundActive = false;
+        resultTextEl.textContent = "Waktu habis! Game diulang.";
+        audioLose.play();
+        
+        // Reset game otomatis jika waktu habis
+        setTimeout(() => {
+          resetGame();
+        }, 1500);
+      }
+    }, 1000);
+  }
+
+  function stopTimer() {
+    clearInterval(timerInterval);
+    roundActive = false;
+  }
+
+  function updateScore() {
+    userScoreEl.textContent = userScore;
+    compScoreEl.textContent = compScore;
+  }
+
+  function computerChoice() {
+    return choices[Math.floor(Math.random() * choices.length)];
+  }
+
+  function getResult(user, comp) {
+    if(user === comp) return "seri";
+    if(
+      (user === "gunting" && comp === "kertas") ||
+      (user === "batu" && comp === "gunting") ||
+      (user === "kertas" && comp === "batu")
+    ) return "menang";
+    return "kalah";
+  }
+
+  function playRound(userChoice) {
+    if(!roundActive) return;
+
+    audioClick.play();
+    stopTimer();
+
+    const compChoice = computerChoice();
+    const result = getResult(userChoice, compChoice);
+
+    if(result === "menang") {
+      userScore++;
+      audioWin.play();
+    } else if(result === "kalah") {
+      compScore++;
+      audioLose.play();
+    }
+
+    updateScore();
+
+    // Animasi SweetAlert2 hasil
+    let icon, title, textColor;
+    if(result === "menang") {
+      icon = "success";
+      title = "Kamu Menang! 🎉";
+      textColor = "#22c55e";
+    } else if(result === "kalah") {
+      icon = "error";
+      title = "Kamu Kalah! 😞";
+      textColor = "#ef4444";
+    } else {
+      icon = "info";
+      title = "Seri!";
+      textColor = "#facc15";
+    }
+
+    resultTextEl.textContent = `${title} Komputer pilih ${compChoice.toUpperCase()}`;
+
+    Swal.fire({
+      title,
+      icon,
+      html: `Kamu: <b>${userChoice.toUpperCase()}</b><br>Komputer: <b>${compChoice.toUpperCase()}</b>`,
+      timer: 1800,
+      timerProgressBar: true,
+      showConfirmButton: false,
+      background: '#222',
+      color: textColor,
+      didOpen: () => {
+        confettiEffect();
+      }
+    }).then(() => {
+      if(userScore >= 5 || compScore >= 5) {
+        let finalTitle = userScore > compScore ? "Selamat! Kamu Menang Game! 🎊" : "Game Berakhir. Kamu Kalah 😢";
+        let finalIcon = userScore > compScore ? "success" : "error";
+        Swal.fire({
+          title: finalTitle,
+          icon: finalIcon,
+          confirmButtonText: "Main Lagi",
+          background: '#222',
+          color: '#eee'
+        }).then(() => resetGame());
+      } else {
+        startTimer();
+      }
+    });
+  }
+
+  function resetGame() {
+    userScore = 0;
+    compScore = 0;
+    updateScore();
+    resultTextEl.textContent = "";
+    startTimer();
+  }
+
+  // Confetti effect for winning animation
+  function confettiEffect() {
+    const confettiContainer = document.createElement("div");
+    confettiContainer.classList.add("confetti");
+    document.body.appendChild(confettiContainer);
+
+    const colors = ["#22c55e", "#4ade80", "#86efac", "#bef264"];
+    const numPieces = 60;
+    for(let i=0; i<numPieces; i++) {
+      const piece = document.createElement("div");
+      piece.style.position = "absolute";
+      piece.style.width = "8px";
+      piece.style.height = "8px";
+      piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.left = Math.random() * window.innerWidth + "px";
+      piece.style.top = Math.random() * window.innerHeight + "px";
+      piece.style.opacity = 1;
+      piece.style.borderRadius = "50%";
+      piece.style.pointerEvents = "none";
+      piece.style.transform = `translateY(0) rotate(${Math.random()*360}deg)`;
+      piece.style.animation = `confettiFall 1.5s ease forwards`;
+
+      confettiContainer.appendChild(piece);
+    }
+    setTimeout(() => confettiContainer.remove(), 1600);
+  }
+
+  // Confetti fall animation keyframes
+  const styleSheet = document.createElement("style");
+  styleSheet.textContent = `
+    @keyframes confettiFall {
+      to {
+        transform: translateY(150vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+  `;
+  document.head.appendChild(styleSheet);
+
+  // Event listeners for buttons
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!roundActive) return;
+      const choice = btn.getAttribute('data-choice');
+      playRound(choice);
+    });
+  });
+
+  // Start game on load
+  window.onload = () => {
+    resetGame();
+  };
+</script>
+
+</body>
+</html>
